@@ -316,11 +316,13 @@ body {
 .top-bar .player-label { font-weight: 700; font-size: 1.1rem; }
 .top-bar .vs { color: var(--primary); font-weight: 700; font-size: 1.2rem; }
 
-.game-container { margin-top: 1rem; position: relative; }
+.game-container { margin-top: 1rem; position: relative; padding: 0 0.5rem; }
 
 #game-canvas {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  max-width: 100%;
+  height: auto;
 }
 
 /* ===== SWITCH PANEL ===== */
@@ -438,7 +440,39 @@ body {
 .hidden { display: none; }
 
 @media (max-width: 768px) {
+  /* Room phase: stack layout */
   .room-layout { grid-template-columns: 1fr; }
+  .pokemon-browser-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  .mini-card img { width: 70px; height: 70px; }
+
+  /* Battle phase: top bar */
+  .top-bar {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  .top-bar .player-label {
+    font-size: 0.95rem;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Switch overlay */
+  .switch-title { font-size: 1.1rem; }
+  .switch-card {
+    width: 110px;
+    padding: 0.6rem;
+  }
+  .switch-card img { width: 60px; height: 60px; }
+  .switch-card .switch-name { font-size: 0.8rem; }
+
+  /* Result overlay */
+  .result-title { font-size: 1.8rem; }
+  .result-subtitle { font-size: 1rem; }
+  .result-btn { font-size: 0.95rem; padding: 0.6rem 1.5rem; }
 }
 </style>
 </head>
