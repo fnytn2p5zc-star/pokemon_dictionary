@@ -4,6 +4,7 @@ _BASE_QUERY = """
 SELECT p.id, p.name_en, p.name_zh_hans, p.name_zh_hant, p.name_ja,
        p.genus_zh, p.height, p.weight, p.generation,
        p.artwork_path, p.sprite_path,
+       p.is_legendary, p.is_mythical, p.is_fully_evolved, p.evolution_stage,
        t1.id AS type1_id, t1.name_en AS type1_en,
        t1.name_zh_hans AS type1_zh_hans, t1.name_zh_hant AS type1_zh_hant,
        t2.id AS type2_id, t2.name_en AS type2_en,
@@ -216,6 +217,28 @@ def fetch_battle_stats(
             type2_en=row["type2_en"],
         ))
     return result
+
+
+def fetch_team_validation_data(
+    conn: sqlite3.Connection,
+    pokemon_ids: list[int],
+) -> list[dict]:
+    """Fetch rule-relevant data for team validation."""
+    if not pokemon_ids:
+        return []
+
+    placeholders = ",".join("?" for _ in pokemon_ids)
+    rows = conn.execute(
+        f"""
+        SELECT p.id, s.total, p.is_legendary, p.is_mythical, p.is_fully_evolved
+        FROM pokemon p
+        JOIN pokemon_stats s ON p.id = s.pokemon_id
+        WHERE p.id IN ({placeholders})
+        """,
+        pokemon_ids,
+    ).fetchall()
+
+    return [dict(row) for row in rows]
 
 
 def search_by_ability(

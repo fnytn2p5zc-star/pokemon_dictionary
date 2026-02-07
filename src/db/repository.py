@@ -26,8 +26,9 @@ def upsert_pokemon(conn: sqlite3.Connection, pokemon: Pokemon) -> None:
         INSERT INTO pokemon (
             id, name_en, name_zh_hans, name_zh_hant, name_ja,
             genus_zh, type1_id, type2_id, height, weight,
-            generation, artwork_path, sprite_path
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            generation, artwork_path, sprite_path,
+            is_legendary, is_mythical, evolves_from_species_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             name_en=excluded.name_en,
             name_zh_hans=excluded.name_zh_hans,
@@ -40,7 +41,10 @@ def upsert_pokemon(conn: sqlite3.Connection, pokemon: Pokemon) -> None:
             weight=excluded.weight,
             generation=excluded.generation,
             artwork_path=excluded.artwork_path,
-            sprite_path=excluded.sprite_path
+            sprite_path=excluded.sprite_path,
+            is_legendary=excluded.is_legendary,
+            is_mythical=excluded.is_mythical,
+            evolves_from_species_id=excluded.evolves_from_species_id
         """,
         (
             pokemon.id, pokemon.name_en, pokemon.name_zh_hans,
@@ -48,6 +52,8 @@ def upsert_pokemon(conn: sqlite3.Connection, pokemon: Pokemon) -> None:
             pokemon.types[0].id, type2_id,
             pokemon.height, pokemon.weight, pokemon.generation,
             pokemon.artwork_path, pokemon.sprite_path,
+            int(pokemon.is_legendary), int(pokemon.is_mythical),
+            pokemon.evolves_from_species_id,
         ),
     )
 

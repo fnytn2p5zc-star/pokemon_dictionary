@@ -179,6 +179,63 @@ body {
   background: #FFEBEE;
 }
 
+.mini-card.rule-blocked {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.rules-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.4rem;
+}
+
+.rules-badge.preset-无限制 { background: #4CAF50; }
+.rules-badge.preset-标准 { background: #FF9800; }
+.rules-badge.preset-严格 { background: #F44336; }
+.rules-badge.preset-自定义 { background: #9C27B0; }
+
+.rules-list {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+
+.rules-list li {
+  padding: 2px 0;
+}
+
+.rules-list li::before {
+  content: '\2022';
+  color: var(--primary);
+  margin-right: 0.4rem;
+}
+
+.validation-errors {
+  background: #FFEBEE;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #C62828;
+}
+
+.validation-errors ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.validation-errors li {
+  padding: 2px 0;
+}
+
 .mini-card img { width: 90px; height: 90px; object-fit: contain; }
 
 .mini-card .mini-name {
@@ -528,6 +585,11 @@ body {
         <div class="room-code" id="room-code">----</div>
       </div>
 
+      <div id="rules-container" style="margin-bottom:0.5rem;">
+        <h2>对战规则</h2>
+        <div id="rules-display"></div>
+      </div>
+
       <div id="players-container">
         <h2>玩家</h2>
         <div id="players-list"></div>
@@ -538,6 +600,7 @@ body {
         <div id="team-slots"></div>
       </div>
 
+      <div id="validation-errors" class="validation-errors hidden"></div>
       <button class="btn btn-ready" id="btn-ready" disabled>准备</button>
       <button class="btn btn-leave" id="btn-leave">离开房间</button>
       <div id="room-status" class="status-msg hidden"></div>
@@ -599,6 +662,7 @@ body {
   var currentPage = 1;
   var isReady = false;
   var nickname = '';
+  var roomRules = null;
 
   // Battle state
   var battleActive = false;
@@ -636,6 +700,8 @@ body {
   var filterSort = document.getElementById('filter-sort');
   var roomStatus = document.getElementById('room-status');
   var mainNavbar = document.getElementById('main-navbar');
+  var rulesDisplay = document.getElementById('rules-display');
+  var validationErrors = document.getElementById('validation-errors');
 
   // DOM - Battle
   var battlePhase = document.getElementById('battle-phase');
@@ -710,7 +776,12 @@ body {
 
   socket.on('room_joined', function(data) {
     if (!data.success) {
-      socket.emit('create_room', {});
+      var savedRules = {};
+      try {
+        var raw = sessionStorage.getItem('room_rules');
+        if (raw) savedRules = JSON.parse(raw);
+      } catch (_e) { /* ignore */ }
+      socket.emit('create_room', { rules: savedRules });
     }
   });
 
@@ -723,6 +794,11 @@ body {
   socket.on('room_update', function(data) {
     roomCodeEl.textContent = data.code;
     renderPlayers(data.players);
+    if (data.rules) {
+      roomRules = data.rules;
+      renderRules(data.rules);
+      loadPokemon(currentPage, searchInput.value.trim());
+    }
   });
 
   socket.on('error', function(data) {
@@ -730,6 +806,46 @@ body {
     roomStatus.classList.remove('hidden');
     setTimeout(function() { roomStatus.classList.add('hidden'); }, 3000);
   });
+
+  socket.on('team_invalid', function(data) {
+    var errors = data.errors || [];
+    validationErrors.innerHTML = '<ul>' +
+      errors.map(function(e) { return '<li>' + escapeHtml(e) + '</li>'; }).join('') +
+      '</ul>';
+    validationErrors.classList.remove('hidden');
+    myTeam = [];
+    renderTeam();
+    loadPokemon(currentPage, searchInput.value.trim());
+  });
+
+  function renderRules(rules) {
+    if (!rules) { rulesDisplay.innerHTML = ''; return; }
+    var preset = rules.preset_name || '无限制';
+    var html = '<span class="rules-badge preset-' + escapeHtml(preset) + '">' + escapeHtml(preset) + '</span>';
+
+    var items = [];
+    if (rules.max_legendary !== null && rules.max_legendary !== undefined) {
+      if (rules.max_legendary === 0) {
+        items.push('禁止传说/幻之宝可梦');
+      } else {
+        items.push('传说/幻之上限: ' + rules.max_legendary + ' 只');
+      }
+    }
+    if (rules.max_stat_total !== null && rules.max_stat_total !== undefined) {
+      items.push('种族值上限: ' + rules.max_stat_total);
+    }
+    if (rules.fully_evolved_only) {
+      items.push('仅最终进化形态');
+    }
+
+    if (items.length > 0) {
+      html += '<ul class="rules-list">' +
+        items.map(function(i) { return '<li>' + i + '</li>'; }).join('') +
+        '</ul>';
+    }
+
+    rulesDisplay.innerHTML = html;
+  }
 
   socket.on('left_room', function() {
     sessionStorage.removeItem('room_code');
@@ -1006,6 +1122,17 @@ body {
       });
   }
 
+  function isPokemonRuleBlocked(p) {
+    if (!roomRules) return false;
+    if (roomRules.max_stat_total !== null && roomRules.max_stat_total !== undefined) {
+      if ((p.total || 0) > roomRules.max_stat_total) return true;
+    }
+    if (roomRules.fully_evolved_only) {
+      if (!p.is_fully_evolved) return true;
+    }
+    return false;
+  }
+
   function renderPokemonGrid(list) {
     pokemonGrid.innerHTML = '';
     list.forEach(function(p) {
@@ -1013,6 +1140,10 @@ body {
       div.className = 'mini-card';
       if (myTeam.some(function(t) { return t.id === p.id; })) {
         div.classList.add('selected');
+      }
+
+      if (isPokemonRuleBlocked(p)) {
+        div.classList.add('rule-blocked');
       }
 
       var imgSrc = artworkUrl(p);
@@ -1122,6 +1253,7 @@ body {
     isReady = false;
     btnReady.textContent = '准备';
     btnReady.classList.remove('is-ready');
+    validationErrors.classList.add('hidden');
     var ids = myTeam.map(function(p) { return p.id; });
     socket.emit('set_team', { pokemon_ids: ids });
   }

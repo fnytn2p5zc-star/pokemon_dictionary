@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.battle.rules import DEFAULT_RULES, RoomRules
 from src.battle.state import Room, Player
 
 
@@ -15,7 +16,11 @@ class RoomManager:
     def get_nickname(self, sid: str) -> str | None:
         return self._sid_to_nickname.get(sid)
 
-    def create_room(self, sid: str) -> Room | None:
+    def create_room(
+        self,
+        sid: str,
+        rules: RoomRules = DEFAULT_RULES,
+    ) -> Room | None:
         nickname = self._sid_to_nickname.get(sid)
         if nickname is None:
             return None
@@ -24,7 +29,7 @@ class RoomManager:
 
         code = self._generate_unique_code()
         player = Player(sid=sid, nickname=nickname)
-        room = Room(code=code, host=player)
+        room = Room(code=code, host=player, rules=rules)
         self._rooms[code] = room
         self._sid_to_room[sid] = code
         return room

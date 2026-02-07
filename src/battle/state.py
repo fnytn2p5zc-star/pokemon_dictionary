@@ -4,6 +4,7 @@ import random
 import string
 
 from src.battle.models import BattlePokemonStats
+from src.battle.rules import DEFAULT_RULES, RoomRules
 
 
 class BattlePokemon:
@@ -49,11 +50,17 @@ class Player:
 
 
 class Room:
-    def __init__(self, code: str, host: Player) -> None:
+    def __init__(
+        self,
+        code: str,
+        host: Player,
+        rules: RoomRules = DEFAULT_RULES,
+    ) -> None:
         self.code = code
         self.players: list[Player] = [host]
         self.status = "waiting"
         self.turn = 0
+        self.rules = rules
 
     @property
     def is_full(self) -> bool:
@@ -78,6 +85,7 @@ class Room:
             "code": self.code,
             "status": self.status,
             "players": [p.to_dict() for p in self.players],
+            "rules": self.rules.to_dict(),
         }
 
     @staticmethod

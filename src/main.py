@@ -11,6 +11,11 @@ from src.export.csv_export import export_csv
 from src.export.json_export import export_json
 from src.scraper.pokemon_scraper import PokemonScraper
 from src.scraper.ability_scraper import run_ability_scraper
+from src.scraper.evolution_backfill import (
+    backfill_from_csv,
+    backfill_species_fields,
+    compute_evolution_fields,
+)
 from src.cli.viewer import cmd_browse, cmd_search, cmd_info, cmd_filter
 from src.chatbot.chat_session import run_chat
 
@@ -103,6 +108,19 @@ def cmd_web(args: argparse.Namespace) -> None:
         debug=args.debug,
         allow_unsafe_werkzeug=True,
     )
+
+
+def cmd_backfill_evolution(args: argparse.Namespace) -> None:
+    config = Config(requests_per_second=args.rate)
+    conn = create_connection(config.db_path)
+    try:
+        if args.api:
+            asyncio.run(backfill_species_fields(config, conn))
+            compute_evolution_fields(conn)
+        else:
+            backfill_from_csv(conn)
+    finally:
+        conn.close()
 
 
 def cmd_chat(_args: argparse.Namespace) -> None:
@@ -210,6 +228,20 @@ def main() -> None:
     web_parser.add_argument("--port", type=int, default=5000)
     web_parser.add_argument("--debug", action="store_true")
     web_parser.set_defaults(func=cmd_web)
+
+    backfill_parser = subparsers.add_parser(
+        "backfill-evolution",
+        help="Backfill legendary/mythical/evolution data from PokeAPI",
+    )
+    backfill_parser.add_argument(
+        "--api", action="store_true",
+        help="Use per-pokemon API calls instead of fast CSV mode",
+    )
+    backfill_parser.add_argument(
+        "--rate", type=float, default=2.0,
+        help="API mode: requests per second (default: 2.0)",
+    )
+    backfill_parser.set_defaults(func=cmd_backfill_evolution)
 
     chat_parser = subparsers.add_parser(
         "chat", help="Pokemon Q&A chatbot",

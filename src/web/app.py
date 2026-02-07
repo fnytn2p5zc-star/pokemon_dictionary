@@ -5,7 +5,7 @@ from flask import Flask, g, send_from_directory
 from flask_socketio import SocketIO
 
 from src.config import Config
-from src.db.connection import create_connection
+from src.db.connection import create_connection, ensure_evolution_data
 from src.web.filters import register_filters
 from src.web.routes import bp
 from src.web.battle_routes import battle_bp
@@ -28,6 +28,13 @@ def create_app() -> Flask:
     app.config["SECRET_KEY"] = os.environ.get(
         "SECRET_KEY", os.urandom(32).hex()
     )
+
+    if config.db_path.exists():
+        startup_conn = create_connection(config.db_path)
+        try:
+            ensure_evolution_data(startup_conn)
+        finally:
+            startup_conn.close()
 
     register_filters(app)
     app.register_blueprint(bp)

@@ -62,6 +62,18 @@ def parse_ability(data: dict, is_hidden: bool, slot: int) -> PokemonAbility:
     )
 
 
+def extract_species_id(species_ref: dict | None) -> int | None:
+    """Extract species ID from a reference like {"name": "...", "url": ".../.../1/"}."""
+    if species_ref is None:
+        return None
+    url = species_ref.get("url", "")
+    parts = url.rstrip("/").split("/")
+    try:
+        return int(parts[-1])
+    except (ValueError, IndexError):
+        return None
+
+
 def extract_species_info(species_data: dict) -> dict:
     names = species_data.get("names", [])
     genera = species_data.get("genera", [])
@@ -74,6 +86,11 @@ def extract_species_info(species_data: dict) -> dict:
         "name_ja": _find_name(names, "ja"),
         "genus_zh": _find_genus(genera, "zh-hans"),
         "generation": _extract_generation_number(generation_url),
+        "is_legendary": species_data.get("is_legendary", False),
+        "is_mythical": species_data.get("is_mythical", False),
+        "evolves_from_species_id": extract_species_id(
+            species_data.get("evolves_from_species")
+        ),
     }
 
 

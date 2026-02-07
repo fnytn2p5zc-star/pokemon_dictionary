@@ -52,3 +52,6 @@ class Pokemon:
     generation: int
     artwork_path: str
     sprite_path: str
+    is_legendary: bool = False
+    is_mythical: bool = False
+    evolves_from_species_id: int | None = None

@@ -176,6 +176,67 @@ body {
   font-weight: 600;
   color: var(--primary);
 }
+
+.rules-section {
+  margin-bottom: 1.2rem;
+}
+
+.preset-group {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.preset-btn {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.preset-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.preset-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.preset-desc {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+}
+
+.custom-rules {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.custom-rules .form-group {
+  margin-bottom: 0.6rem;
+}
+
+.custom-rules select {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  background: var(--card-bg);
+}
 </style>
 </head>
 <body>
@@ -208,6 +269,43 @@ body {
   <!-- Step 2: Create or Join Room -->
   <div class="lobby-card hidden" id="room-section">
     <h2>欢迎, <span id="display-nickname" class="nickname-display"></span></h2>
+
+    <div class="rules-section">
+      <label style="font-weight:600;font-size:0.9rem;display:block;margin-bottom:0.5rem;">对战规则</label>
+      <div class="preset-group" id="preset-group">
+        <button class="preset-btn active" data-preset="无限制">无限制</button>
+        <button class="preset-btn" data-preset="标准">标准</button>
+        <button class="preset-btn" data-preset="严格">严格</button>
+        <button class="preset-btn" data-preset="自定义">自定义</button>
+      </div>
+      <div class="preset-desc" id="preset-desc">无任何限制，可自由选择所有宝可梦</div>
+
+      <div id="custom-rules-panel" class="custom-rules hidden">
+        <div class="form-group">
+          <label for="rule-legendary">传说/幻之宝可梦上限</label>
+          <select id="rule-legendary">
+            <option value="">不限</option>
+            <option value="0">禁止</option>
+            <option value="1">最多 1 只</option>
+            <option value="2">最多 2 只</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="rule-stat-total">种族值上限</label>
+          <select id="rule-stat-total">
+            <option value="">不限</option>
+            <option value="600">600</option>
+            <option value="540">540</option>
+            <option value="500">500</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
+          <input type="checkbox" id="rule-fully-evolved" style="width:auto;">
+          <label for="rule-fully-evolved" style="margin:0;font-weight:normal;">仅最终进化形态</label>
+        </div>
+      </div>
+    </div>
+
     <button class="btn btn-primary" id="btn-create-room">创建房间</button>
     <div class="divider">或者</div>
     <div class="form-group">
@@ -234,6 +332,50 @@ body {
   const roomCodeInput = document.getElementById('room-code-input');
   const btnJoinRoom = document.getElementById('btn-join-room');
   const roomStatus = document.getElementById('room-status');
+  const presetGroup = document.getElementById('preset-group');
+  const presetDesc = document.getElementById('preset-desc');
+  const customPanel = document.getElementById('custom-rules-panel');
+  const ruleLegendary = document.getElementById('rule-legendary');
+  const ruleStatTotal = document.getElementById('rule-stat-total');
+  const ruleFullyEvolved = document.getElementById('rule-fully-evolved');
+
+  var selectedPreset = '无限制';
+
+  var PRESET_DESCS = {
+    '无限制': '无任何限制，可自由选择所有宝可梦',
+    '标准': '传说/幻之宝可梦最多2只，种族值上限600',
+    '严格': '禁止传说/幻之宝可梦，种族值上限540，仅最终进化',
+    '自定义': '自由设定各项规则'
+  };
+
+  presetGroup.addEventListener('click', function(e) {
+    var btn = e.target.closest('.preset-btn');
+    if (!btn) return;
+    var preset = btn.getAttribute('data-preset');
+    selectedPreset = preset;
+    presetGroup.querySelectorAll('.preset-btn').forEach(function(b) {
+      b.classList.toggle('active', b === btn);
+    });
+    presetDesc.textContent = PRESET_DESCS[preset] || '';
+    if (preset === '自定义') {
+      customPanel.classList.remove('hidden');
+    } else {
+      customPanel.classList.add('hidden');
+    }
+  });
+
+  function buildRulesPayload() {
+    if (selectedPreset !== '自定义') {
+      return { preset: selectedPreset };
+    }
+    var rules = {};
+    var leg = ruleLegendary.value;
+    if (leg !== '') rules.max_legendary = parseInt(leg, 10);
+    var stat = ruleStatTotal.value;
+    if (stat !== '') rules.max_stat_total = parseInt(stat, 10);
+    if (ruleFullyEvolved.checked) rules.fully_evolved_only = true;
+    return rules;
+  }
 
   function showStatus(el, msg, type) {
     el.textContent = msg;
@@ -264,11 +406,13 @@ body {
   });
 
   btnCreateRoom.addEventListener('click', function() {
-    socket.emit('create_room', {});
+    var rules = buildRulesPayload();
+    socket.emit('create_room', { rules: rules });
   });
 
   socket.on('room_created', function(data) {
     sessionStorage.setItem('room_code', data.room_code);
+    sessionStorage.setItem('room_rules', JSON.stringify(buildRulesPayload()));
     window.location.href = '/battle/room';
   });
 

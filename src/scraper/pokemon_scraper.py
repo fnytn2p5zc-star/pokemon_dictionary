@@ -110,6 +110,9 @@ class PokemonScraper:
                 generation=species_info["generation"],
                 artwork_path=f"images/artwork/{pokemon_id}.png",
                 sprite_path=f"images/sprites/{pokemon_id}.png",
+                is_legendary=species_info["is_legendary"],
+                is_mythical=species_info["is_mythical"],
+                evolves_from_species_id=species_info["evolves_from_species_id"],
             )
         except Exception as exc:
             print(f"  Error scraping Pokemon #{pokemon_id}: {exc}")

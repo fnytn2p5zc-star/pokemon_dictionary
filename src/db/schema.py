@@ -60,6 +60,31 @@ _MIGRATIONS = [
         "flavor_text_zh",
         "ALTER TABLE pokemon_abilities ADD COLUMN flavor_text_zh TEXT NOT NULL DEFAULT ''",
     ),
+    (
+        "pokemon",
+        "is_legendary",
+        "ALTER TABLE pokemon ADD COLUMN is_legendary INTEGER NOT NULL DEFAULT 0",
+    ),
+    (
+        "pokemon",
+        "is_mythical",
+        "ALTER TABLE pokemon ADD COLUMN is_mythical INTEGER NOT NULL DEFAULT 0",
+    ),
+    (
+        "pokemon",
+        "evolves_from_species_id",
+        "ALTER TABLE pokemon ADD COLUMN evolves_from_species_id INTEGER",
+    ),
+    (
+        "pokemon",
+        "evolution_stage",
+        "ALTER TABLE pokemon ADD COLUMN evolution_stage INTEGER NOT NULL DEFAULT 0",
+    ),
+    (
+        "pokemon",
+        "is_fully_evolved",
+        "ALTER TABLE pokemon ADD COLUMN is_fully_evolved INTEGER NOT NULL DEFAULT 0",
+    ),
 ]
 
 

@@ -7,11 +7,12 @@ from flask import current_app, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from src.battle.models import BattleConfig
+from src.battle.rules import parse_rules_from_data, validate_team
 from src.battle.state import Room, create_team
 from src.battle.engine import TurnBattleEngine
 from src.battle.room_manager import RoomManager
 from src.db.connection import create_connection
-from src.db.queries import fetch_battle_stats
+from src.db.queries import fetch_battle_stats, fetch_team_validation_data
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +58,13 @@ def register_events(socketio: SocketIO) -> None:
         emit("nickname_set", {"success": True, "nickname": nickname})
 
     @socketio.on("create_room")
-    def on_create_room(_data=None):
+    def on_create_room(data=None):
         sid = request.sid
-        room = room_manager.create_room(sid)
+        rules_data = {}
+        if isinstance(data, dict):
+            rules_data = data.get("rules", {})
+        rules = parse_rules_from_data(rules_data)
+        room = room_manager.create_room(sid, rules=rules)
         if room is None:
             emit("error", {"message": "无法创建房间，请先设置昵称"})
             return
@@ -105,6 +110,23 @@ def register_events(socketio: SocketIO) -> None:
 
         if len(pokemon_ids) < config.team_min:
             emit("error", {"message": f"至少选择 {config.team_min} 只宝可梦"})
+            return
+
+        # Validate against room rules
+        db_path = current_app.config["DB_PATH"]
+        conn = create_connection(db_path)
+        try:
+            team_data = fetch_team_validation_data(conn, pokemon_ids)
+        finally:
+            conn.close()
+
+        if len(team_data) != len(pokemon_ids):
+            emit("error", {"message": "部分宝可梦 ID 无效"})
+            return
+
+        errors = validate_team(room.rules, team_data)
+        if errors:
+            emit("team_invalid", {"errors": errors})
             return
 
         player = room.get_player(sid)
