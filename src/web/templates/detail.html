@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+<a class="back-link" href="/">&larr; 返回列表</a>
+
+<div class="detail-layout">
+  <div class="detail-image">
+    <img src="/img/artwork/{{ p.id }}.png" alt="{{ p.name_zh_hans }}"
+         onerror="this.src='/img/sprites/{{ p.id }}.png'">
+  </div>
+
+  <div class="detail-info">
+    <h1>{{ p.name_zh_hans }}</h1>
+    <div class="sub-name">
+      {{ p.id|pokemon_id_str }}
+      &middot; {{ p.name_en }}
+      {% if p.name_ja %}&middot; {{ p.name_ja }}{% endif %}
+      {% if p.name_zh_hant %}&middot; {{ p.name_zh_hant }}{% endif %}
+    </div>
+
+    <div style="margin-bottom:1rem">
+      {{ p.type1_zh_hans|type_badge(p.type1_en) }}
+      {% if p.type2_en %}
+      {{ p.type2_zh_hans|type_badge(p.type2_en) }}
+      {% endif %}
+    </div>
+
+    <table class="info-table">
+      <tr><td>分类</td><td>{{ p.genus_zh }}</td></tr>
+      <tr><td>身高</td><td>{{ "%.1f"|format(p.height / 10) }} m</td></tr>
+      <tr><td>体重</td><td>{{ "%.1f"|format(p.weight / 10) }} kg</td></tr>
+      <tr><td>世代</td><td>第{{ p.generation }}世代</td></tr>
+    </table>
+
+    <h3 style="margin:1rem 0 0.5rem">种族值 <span style="color:var(--text-light);font-weight:400;font-size:0.9rem">(合计 {{ p.total }})</span></h3>
+    {% for key, label in [("hp","HP"),("attack","攻击"),("defense","防御"),("sp_attack","特攻"),("sp_defense","特防"),("speed","速度")] %}
+    <div class="stat-row">
+      <span class="stat-label">{{ label }}</span>
+      <span class="stat-value">{{ p[key] }}</span>
+      <div class="stat-bar-bg">
+        <div class="stat-bar-fill" style="width:{{ p[key]|stat_percent }}%;background:{{ p[key]|stat_color }}"></div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if abilities %}
+    <h3 style="margin:1.2rem 0 0.5rem">特性</h3>
+    {% for a in abilities %}
+    <div class="ability-item">
+      <span class="ability-name">{{ a.name_zh_hans or a.name_en }}</span>
+      <span style="color:var(--text-light);font-size:0.85rem">({{ a.name_en }})</span>
+      {% if a.is_hidden %}<span class="ability-hidden">隐藏特性</span>{% endif %}
+      {% if a.flavor_text_zh %}
+      <div class="ability-desc">{{ a.flavor_text_zh }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="nav-arrows">
+  {% if p.id > 1 %}
+  <a href="/pokemon/{{ p.id - 1 }}">&larr; {{ (p.id - 1)|pokemon_id_str }} 上一个</a>
+  {% else %}
+  <span></span>
+  {% endif %}
+  {% if p.id < 1025 %}
+  <a href="/pokemon/{{ p.id + 1 }}">下一个 {{ (p.id + 1)|pokemon_id_str }} &rarr;</a>
+  {% else %}
+  <span></span>
+  {% endif %}
+</div>
+
+{% endblock %}

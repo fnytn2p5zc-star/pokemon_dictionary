@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f5f5;
+  --card-bg: #fff;
+  --text: #333;
+  --text-light: #666;
+  --border: #e0e0e0;
+  --primary: #e53935;
+  --primary-dark: #c62828;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.navbar {
+  background: var(--primary);
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar a { color: #fff; text-decoration: none; }
+.navbar-brand { font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+.navbar-links { display: flex; gap: 1rem; }
+.navbar-links a:hover { text-decoration: underline; }
+
+.search-form {
+  margin-left: auto;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.search-form input[type="text"] {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 180px;
+  outline: none;
+}
+
+.search-form button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-dark);
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.search-form button:hover { background: #b71c1c; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
+
+.pokemon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.pokemon-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem;
+  text-align: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+  text-decoration: none;
+  color: var(--text);
+  display: block;
+}
+
+.pokemon-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.pokemon-card img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.pokemon-card .card-id {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.pokemon-card .card-name-zh {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.2rem 0;
+}
+
+.pokemon-card .card-name-en {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 0.4rem;
+}
+
+.pokemon-card .card-types { display: flex; gap: 4px; justify-content: center; }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pagination a, .pagination span {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.pagination a {
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.pagination a:hover { background: var(--primary); color: #fff; }
+.pagination .current {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.pagination .disabled {
+  background: var(--border);
+  color: var(--text-light);
+  pointer-events: none;
+}
+
+.filter-bar {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.filter-bar label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.filter-bar select, .filter-bar input[type="number"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.filter-bar button {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.filter-bar button:hover { background: var(--primary-dark); }
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.detail-image {
+  text-align: center;
+}
+
+.detail-image img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.detail-info h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.detail-info .sub-name {
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.info-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-table td:first-child {
+  font-weight: 600;
+  width: 80px;
+  color: var(--text-light);
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.stat-label {
+  width: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: right;
+  color: var(--text-light);
+}
+
+.stat-value {
+  width: 35px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.stat-bar-bg {
+  flex: 1;
+  height: 14px;
+  background: #eee;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.3s;
+}
+
+.ability-item {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.ability-name {
+  font-weight: 600;
+}
+
+.ability-hidden {
+  font-size: 0.75rem;
+  color: var(--primary);
+  margin-left: 0.3rem;
+}
+
+.ability-desc {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  margin-top: 0.2rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-light);
+  font-size: 1.1rem;
+}
+
+.nav-arrows {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.nav-arrows a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav-arrows a:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .detail-layout { grid-template-columns: 1fr; }
+  .search-form input[type="text"] { width: 130px; }
+  .navbar { gap: 0.8rem; }
+}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="navbar-brand" href="/">Pokemon 图鉴</a>
+  <div class="navbar-links">
+    <a href="/">浏览</a>
+    <a href="/filter">筛选</a>
+  </div>
+  <form class="search-form" action="/search" method="get">
+    <input type="text" name="q" placeholder="搜索 Pokemon..." value="{{ search_query|default('') }}">
+    <button type="submit">搜索</button>
+  </form>
+</nav>
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+</body>
+</html>

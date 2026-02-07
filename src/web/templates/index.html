@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if all_types is defined %}
+<form class="filter-bar" action="/filter" method="get">
+  <div>
+    <label>属性</label>
+    <select name="type">
+      <option value="">全部</option>
+      {% for t in all_types %}
+      <option value="{{ t.name_en }}" {% if filter_type == t.name_en %}selected{% endif %}>
+        {{ t.name_zh_hans }} ({{ t.name_en }})
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>世代</label>
+    <select name="gen">
+      <option value="">全部</option>
+      {% for g in range(1, 10) %}
+      <option value="{{ g }}" {% if filter_gen|string == g|string %}selected{% endif %}>第{{ g }}世代</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>排序</label>
+    <select name="sort">
+      {% for val, label in [("id","编号"),("total","种族值"),("hp","HP"),("attack","攻击"),("defense","防御"),("sp_attack","特攻"),("sp_defense","特防"),("speed","速度")] %}
+      <option value="{{ val }}" {% if filter_sort == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>最低种族值</label>
+    <input type="number" name="min_total" value="{{ filter_min_total }}" placeholder="0" min="0" max="800" style="width:80px">
+  </div>
+  <button type="submit">筛选</button>
+</form>
+{% endif %}
+
+{% if pokemon_list %}
+<div class="pokemon-grid">
+  {% for p in pokemon_list %}
+  <a class="pokemon-card" href="/pokemon/{{ p.id }}">
+    <img src="/img/artwork/{{ p.id }}.png" alt="{{ p.name_zh_hans }}" loading="lazy"
+         onerror="this.src='/img/sprites/{{ p.id }}.png'">
+    <div class="card-id">{{ p.id|pokemon_id_str }}</div>
+    <div class="card-name-zh">{{ p.name_zh_hans }}</div>
+    <div class="card-name-en">{{ p.name_en }}</div>
+    <div class="card-types">
+      {{ p.type1_zh_hans|type_badge(p.type1_en) }}
+      {% if p.type2_en %}
+      {{ p.type2_zh_hans|type_badge(p.type2_en) }}
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  {% if search_query is defined and search_query %}
+    没有找到与「{{ search_query }}」相关的 Pokemon
+  {% else %}
+    没有找到 Pokemon
+  {% endif %}
+</div>
+{% endif %}
+
+{% if pagination %}
+<div class="pagination">
+  {% if pagination.has_prev %}
+  <a href="?page={{ pagination.page - 1 }}">上一页</a>
+  {% else %}
+  <span class="disabled">上一页</span>
+  {% endif %}
+
+  {% for p in pagination.pages %}
+    {% if p == pagination.page %}
+    <span class="current">{{ p }}</span>
+    {% else %}
+    <a href="?page={{ p }}">{{ p }}</a>
+    {% endif %}
+  {% endfor %}
+
+  {% if pagination.has_next %}
+  <a href="?page={{ pagination.page + 1 }}">下一页</a>
+  {% else %}
+  <span class="disabled">下一页</span>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
