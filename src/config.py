@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 @dataclass(frozen=True)
@@ -13,10 +15,10 @@ class Config:
         "https://raw.githubusercontent.com/PokeAPI/sprites"
         "/master/sprites/pokemon/{id}.png"
     )
-    data_dir: Path = Path("data")
-    db_path: Path = Path("data/pokemon.db")
-    artwork_dir: Path = Path("data/images/artwork")
-    sprite_dir: Path = Path("data/images/sprites")
+    data_dir: Path = field(default_factory=lambda: _PROJECT_ROOT / "data")
+    db_path: Path = field(default_factory=lambda: _PROJECT_ROOT / "data" / "pokemon.db")
+    artwork_dir: Path = field(default_factory=lambda: _PROJECT_ROOT / "data" / "images" / "artwork")
+    sprite_dir: Path = field(default_factory=lambda: _PROJECT_ROOT / "data" / "images" / "sprites")
     requests_per_second: float = 2.0
     max_retries: int = 3
     retry_base_delay: float = 1.0
