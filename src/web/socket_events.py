@@ -20,7 +20,16 @@ logger = logging.getLogger(__name__)
 room_manager = RoomManager()
 _battle_engines: dict[str, TurnBattleEngine] = {}
 _switch_events: dict[str, threading.Event] = {}
-_chat_rate: dict[str, float] = {}
+_rate_limits: dict[str, float] = {}
+
+
+def _is_rate_limited(sid: str, event: str, interval: float = 1.0) -> bool:
+    key = f"{sid}:{event}"
+    now = time.monotonic()
+    if now - _rate_limits.get(key, 0) < interval:
+        return True
+    _rate_limits[key] = now
+    return False
 
 
 def register_events(socketio: SocketIO) -> None:
@@ -48,11 +57,14 @@ def register_events(socketio: SocketIO) -> None:
         if room and not empty:
             socketio.emit("room_update", room.to_dict(), room=room.code)
         room_manager.remove_sid(sid)
-        _chat_rate.pop(sid, None)
+        for key in [k for k in _rate_limits if k.startswith(f"{sid}:")]:
+            del _rate_limits[key]
 
     @socketio.on("set_nickname")
     def on_set_nickname(data):
         sid = request.sid
+        if _is_rate_limited(sid, "set_nickname", 2.0):
+            return
         nickname = str(data.get("nickname", "")).strip()[:20]
         if not nickname:
             emit("error", {"message": "昵称不能为空"})
@@ -63,6 +75,8 @@ def register_events(socketio: SocketIO) -> None:
     @socketio.on("create_room")
     def on_create_room(data=None):
         sid = request.sid
+        if _is_rate_limited(sid, "create_room", 5.0):
+            return
         rules_data = {}
         if isinstance(data, dict):
             rules_data = data.get("rules", {})
@@ -78,7 +92,9 @@ def register_events(socketio: SocketIO) -> None:
     @socketio.on("join_room")
     def on_join_room(data):
         sid = request.sid
-        code = str(data.get("room_code", "")).strip()
+        if _is_rate_limited(sid, "join_room", 2.0):
+            return
+        code = str(data.get("room_code", "")).strip().upper()
         room, error = room_manager.join_room(sid, code)
         if room is None:
             emit("room_joined", {"success": False, "error": error})
@@ -90,6 +106,8 @@ def register_events(socketio: SocketIO) -> None:
     @socketio.on("set_team")
     def on_set_team(data):
         sid = request.sid
+        if _is_rate_limited(sid, "set_team", 1.0):
+            return
         room = room_manager.get_room_by_sid(sid)
         if room is None:
             emit("error", {"message": "你不在任何房间中"})
@@ -142,6 +160,8 @@ def register_events(socketio: SocketIO) -> None:
     @socketio.on("toggle_ready")
     def on_toggle_ready(_data=None):
         sid = request.sid
+        if _is_rate_limited(sid, "toggle_ready", 1.0):
+            return
         room = room_manager.get_room_by_sid(sid)
         if room is None:
             return
@@ -186,10 +206,8 @@ def register_events(socketio: SocketIO) -> None:
         room = room_manager.get_room_by_sid(sid)
         if room is None:
             return
-        now = time.monotonic()
-        if now - _chat_rate.get(sid, 0) < 1.0:
+        if _is_rate_limited(sid, "send_chat", 1.0):
             return
-        _chat_rate[sid] = now
         nickname = room_manager.get_nickname(sid) or "???"
         message = str(data.get("message", "")).strip()[:100]
         if not message:
@@ -202,6 +220,8 @@ def register_events(socketio: SocketIO) -> None:
     @socketio.on("select_pokemon")
     def on_select_pokemon(data):
         sid = request.sid
+        if _is_rate_limited(sid, "select_pokemon", 1.0):
+            return
         room = room_manager.get_room_by_sid(sid)
         if room is None:
             return
@@ -317,15 +337,16 @@ def _run_turn_loop(
                 ]
 
                 if len(remaining) == 1:
-                    socketio.sleep(2)  # wait for faint animation to finish
-                    new_active = engine.switch_pokemon(
-                        fainted_team, remaining[0]["index"]
-                    )
-                    if new_active:
-                        socketio.emit("pokemon_switched", {
-                            "team": fainted_team,
-                            "pokemon": new_active.to_dict(),
-                        }, room=room.code)
+                    socketio.sleep(2)
+                    if engine.state == "waiting_switch":
+                        new_active = engine.switch_pokemon(
+                            fainted_team, remaining[0]["index"]
+                        )
+                        if new_active:
+                            socketio.emit("pokemon_switched", {
+                                "team": fainted_team,
+                                "pokemon": new_active.to_dict(),
+                            }, room=room.code)
                 else:
                     socketio.emit("request_switch", {
                         "reason": "fainted",

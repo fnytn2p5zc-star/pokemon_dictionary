@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import random
+import secrets
 import string
 
 from src.battle.models import BattlePokemonStats
@@ -42,7 +42,6 @@ class Player:
 
     def to_dict(self) -> dict:
         return {
-            "sid": self.sid,
             "nickname": self.nickname,
             "team_size": len(self.team_ids),
             "ready": self.ready,
@@ -90,7 +89,8 @@ class Room:
 
     @staticmethod
     def generate_code() -> str:
-        return "".join(random.choices(string.digits, k=4))
+        chars = string.ascii_uppercase + string.digits
+        return "".join(secrets.choice(chars) for _ in range(6))
 
 
 def create_team(

@@ -40,7 +40,12 @@ def create_app() -> Flask:
     app.register_blueprint(bp)
     app.register_blueprint(battle_bp)
 
-    socketio.init_app(app, cors_allowed_origins="*")
+    origins = os.environ.get("CORS_ORIGINS", "*")
+    if origins == "*":
+        allowed_origins = "*"
+    else:
+        allowed_origins = [o.strip() for o in origins.split(",") if o.strip()]
+    socketio.init_app(app, cors_allowed_origins=allowed_origins)
 
     from src.web.socket_events import register_events
     register_events(socketio)
