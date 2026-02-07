@@ -316,24 +316,35 @@ def _run_turn_loop(
                     p.to_dict() for p in engine.get_alive(fainted_team)
                 ]
 
-                socketio.emit("request_switch", {
-                    "reason": "fainted",
-                    "remaining": remaining,
-                }, room=fainted_player.sid)
-
-                switch_evt = threading.Event()
-                _switch_events[room.code] = switch_evt
-
-                switch_evt.wait(timeout=config.switch_timeout)
-                _switch_events.pop(room.code, None)
-
-                if engine.state == "waiting_switch":
-                    new_active = engine.auto_switch(fainted_team)
+                if len(remaining) == 1:
+                    socketio.sleep(2)  # wait for faint animation to finish
+                    new_active = engine.switch_pokemon(
+                        fainted_team, remaining[0]["index"]
+                    )
                     if new_active:
                         socketio.emit("pokemon_switched", {
                             "team": fainted_team,
                             "pokemon": new_active.to_dict(),
                         }, room=room.code)
+                else:
+                    socketio.emit("request_switch", {
+                        "reason": "fainted",
+                        "remaining": remaining,
+                    }, room=fainted_player.sid)
+
+                    switch_evt = threading.Event()
+                    _switch_events[room.code] = switch_evt
+
+                    switch_evt.wait(timeout=config.switch_timeout)
+                    _switch_events.pop(room.code, None)
+
+                    if engine.state == "waiting_switch":
+                        new_active = engine.auto_switch(fainted_team)
+                        if new_active:
+                            socketio.emit("pokemon_switched", {
+                                "team": fainted_team,
+                                "pokemon": new_active.to_dict(),
+                            }, room=room.code)
 
                 if engine.finished:
                     break
