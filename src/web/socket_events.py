@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 
 from flask import current_app, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 room_manager = RoomManager()
 _battle_engines: dict[str, TurnBattleEngine] = {}
 _switch_events: dict[str, threading.Event] = {}
+_chat_rate: dict[str, float] = {}
 
 
 def register_events(socketio: SocketIO) -> None:
@@ -46,6 +48,7 @@ def register_events(socketio: SocketIO) -> None:
         if room and not empty:
             socketio.emit("room_update", room.to_dict(), room=room.code)
         room_manager.remove_sid(sid)
+        _chat_rate.pop(sid, None)
 
     @socketio.on("set_nickname")
     def on_set_nickname(data):
@@ -174,6 +177,27 @@ def register_events(socketio: SocketIO) -> None:
         if room and not empty:
             socketio.emit("room_update", room.to_dict(), room=room.code)
         emit("left_room", {"success": True})
+
+    @socketio.on("send_chat")
+    def on_send_chat(data):
+        sid = request.sid
+        if not isinstance(data, dict):
+            return
+        room = room_manager.get_room_by_sid(sid)
+        if room is None:
+            return
+        now = time.monotonic()
+        if now - _chat_rate.get(sid, 0) < 1.0:
+            return
+        _chat_rate[sid] = now
+        nickname = room_manager.get_nickname(sid) or "???"
+        message = str(data.get("message", "")).strip()[:100]
+        if not message:
+            return
+        socketio.emit("chat_message", {
+            "nickname": nickname,
+            "message": message,
+        }, room=room.code)
 
     @socketio.on("select_pokemon")
     def on_select_pokemon(data):

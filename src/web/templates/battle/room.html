@@ -494,6 +494,78 @@ body {
 
 .result-btn:hover { background: var(--primary-dark); }
 
+/* ===== CHAT BOX ===== */
+.chat-box {
+  width: 100%;
+  max-width: 800px;
+  background: #16213e;
+  border-radius: 10px;
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-box.in-room {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+
+.chat-messages {
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 0.5rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  scrollbar-width: thin;
+}
+
+.chat-msg .chat-nick {
+  font-weight: 700;
+  margin-right: 0.4rem;
+}
+
+.chat-box.in-room .chat-msg { color: var(--text); }
+.chat-box:not(.in-room) .chat-msg { color: #ccc; }
+.chat-box.in-room .chat-nick { color: var(--primary); }
+.chat-box:not(.in-room) .chat-nick { color: #FFD700; }
+
+.chat-input-row {
+  display: flex;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.chat-box.in-room .chat-input-row { border-top: 1px solid var(--border); }
+
+.chat-input-row input {
+  flex: 1;
+  padding: 0.45rem 0.7rem;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  background: transparent;
+  color: #eee;
+}
+
+.chat-box.in-room .chat-input-row input { color: var(--text); }
+
+.chat-input-row input::placeholder { color: #888; }
+
+.chat-input-row button {
+  padding: 0.45rem 0.9rem;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.chat-input-row button:hover { background: var(--primary-dark); }
+
 .hidden { display: none; }
 
 @media (max-width: 768px) {
@@ -530,6 +602,9 @@ body {
   .result-title { font-size: 1.8rem; }
   .result-subtitle { font-size: 1rem; }
   .result-btn { font-size: 0.95rem; padding: 0.6rem 1.5rem; }
+
+  /* Chat */
+  .chat-messages { max-height: 120px; font-size: 0.78rem; }
 }
 </style>
 </head>
@@ -617,6 +692,15 @@ body {
   </div>
   <div class="game-container">
     <canvas id="game-canvas" width="800" height="500"></canvas>
+  </div>
+</div>
+
+<!-- ===== CHAT BOX ===== -->
+<div class="chat-box in-room" id="chat-box">
+  <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="说点什么..." maxlength="100" autocomplete="off">
+    <button id="btn-chat-send">发送</button>
   </div>
 </div>
 
@@ -1612,7 +1696,71 @@ body {
     ctx.closePath();
   }
 
+  // ===== CHAT =====
+  var chatBox = document.getElementById('chat-box');
+  var chatMessages = document.getElementById('chat-messages');
+  var chatInput = document.getElementById('chat-input');
+  var btnChatSend = document.getElementById('btn-chat-send');
+  var lastChatSendTime = 0;
+
+  function moveChatToRoom() {
+    var panelRight = document.querySelector('#room-phase .panel:last-child');
+    if (panelRight) {
+      panelRight.appendChild(chatBox);
+    }
+    chatBox.classList.add('in-room');
+  }
+
+  function moveChatToBattle() {
+    battlePhase.appendChild(chatBox);
+    chatBox.classList.remove('in-room');
+  }
+
+  function appendChatMessage(nick, msg) {
+    var div = document.createElement('div');
+    div.className = 'chat-msg';
+    var nickSpan = document.createElement('span');
+    nickSpan.className = 'chat-nick';
+    nickSpan.textContent = nick + ':';
+    var textNode = document.createTextNode(' ' + msg);
+    div.appendChild(nickSpan);
+    div.appendChild(textNode);
+    chatMessages.appendChild(div);
+    while (chatMessages.children.length > 100) {
+      chatMessages.removeChild(chatMessages.firstChild);
+    }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function sendChatMessage() {
+    var msg = chatInput.value.trim();
+    if (!msg) return;
+    var now = Date.now();
+    if (now - lastChatSendTime < 1000) return;
+    lastChatSendTime = now;
+    socket.emit('send_chat', { message: msg });
+    chatInput.value = '';
+  }
+
+  socket.on('chat_message', function(data) {
+    appendChatMessage(data.nickname, data.message);
+  });
+
+  btnChatSend.addEventListener('click', sendChatMessage);
+  chatInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendChatMessage();
+  });
+
+  // Move chat when battle starts
+  var originalBattleStart = socket.listeners('battle_start')[0];
+  socket.off('battle_start');
+  socket.on('battle_start', function(data) {
+    originalBattleStart(data);
+    moveChatToBattle();
+  });
+
   // ===== Init =====
+  moveChatToRoom();
   renderTeam();
   loadTypes();
   loadPokemon(1);
