@@ -813,9 +813,9 @@ body {
       errors.map(function(e) { return '<li>' + escapeHtml(e) + '</li>'; }).join('') +
       '</ul>';
     validationErrors.classList.remove('hidden');
-    myTeam = [];
-    renderTeam();
-    loadPokemon(currentPage, searchInput.value.trim());
+    isReady = false;
+    btnReady.textContent = '准备';
+    btnReady.classList.remove('is-ready');
   });
 
   function renderRules(rules) {
@@ -1130,6 +1130,17 @@ body {
     if (roomRules.fully_evolved_only) {
       if (!p.is_fully_evolved) return true;
     }
+    if (roomRules.max_legendary !== null && roomRules.max_legendary !== undefined) {
+      if (p.is_legendary || p.is_mythical) {
+        var alreadyInTeam = myTeam.some(function(t) { return t.id === p.id; });
+        if (!alreadyInTeam) {
+          var legendaryCount = myTeam.filter(function(t) {
+            return t.is_legendary || t.is_mythical;
+          }).length;
+          if (legendaryCount >= roomRules.max_legendary) return true;
+        }
+      }
+    }
     return false;
   }
 
@@ -1205,6 +1216,7 @@ body {
 
   function togglePokemon(p) {
     if (toggleLocked) return;
+    if (isPokemonRuleBlocked(p)) return;
     toggleLocked = true;
 
     var idx = myTeam.findIndex(function(t) { return t.id === p.id; });
