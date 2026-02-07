@@ -94,9 +94,15 @@ def cmd_scrape_abilities(_args: argparse.Namespace) -> None:
 
 
 def cmd_web(args: argparse.Namespace) -> None:
-    from src.web.app import create_app
+    from src.web.app import create_app, socketio
     app = create_app()
-    app.run(host=args.host, port=args.port, debug=args.debug)
+    socketio.run(
+        app,
+        host=args.host,
+        port=args.port,
+        debug=args.debug,
+        allow_unsafe_werkzeug=True,
+    )
 
 
 def cmd_chat(_args: argparse.Namespace) -> None:

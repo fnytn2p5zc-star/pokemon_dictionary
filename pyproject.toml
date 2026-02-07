@@ -7,6 +7,7 @@ dependencies = [
     "httpx[http2]>=0.27",
     "tqdm>=4.66",
     "flask>=3.0",
+    "flask-socketio>=5.3",
 ]
 
 [project.scripts]

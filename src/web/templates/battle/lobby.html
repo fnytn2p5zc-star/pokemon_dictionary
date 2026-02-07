@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f5f5;
+  --card-bg: #fff;
+  --text: #333;
+  --text-light: #666;
+  --border: #e0e0e0;
+  --primary: #e53935;
+  --primary-dark: #c62828;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.navbar {
+  background: var(--primary);
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar a { color: #fff; text-decoration: none; }
+.navbar-brand { font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+.navbar-links { display: flex; gap: 1rem; }
+.navbar-links a:hover { text-decoration: underline; }
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.lobby-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.lobby-card h2 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.lobby-card h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.lobby-card .subtitle {
+  text-align: center;
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--primary);
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  text-align: center;
+  width: 100%;
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover { background: var(--primary-dark); }
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #607D8B;
+  color: #fff;
+  margin-top: 0.5rem;
+}
+
+.btn-secondary:hover { background: #455A64; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-msg {
+  text-align: center;
+  padding: 0.6rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.status-msg.error {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+.status-msg.success {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.hidden { display: none; }
+
+.nickname-display {
+  font-weight: 600;
+  color: var(--primary);
+}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="navbar-brand" href="/">Pokemon 图鉴</a>
+  <div class="navbar-links">
+    <a href="/">浏览</a>
+    <a href="/filter">筛选</a>
+    <a href="/battle/">对战</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="lobby-card">
+    <h1>Pokemon 对战</h1>
+    <p class="subtitle">选择你的宝可梦队伍，与好友一决高下</p>
+  </div>
+
+  <!-- Step 1: Set Nickname -->
+  <div class="lobby-card" id="nickname-section">
+    <h2>设置昵称</h2>
+    <div class="form-group">
+      <label for="nickname-input">你的昵称</label>
+      <input type="text" id="nickname-input" placeholder="输入昵称..." maxlength="20" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" id="btn-set-nickname">确认昵称</button>
+    <div id="nickname-status" class="status-msg hidden"></div>
+  </div>
+
+  <!-- Step 2: Create or Join Room -->
+  <div class="lobby-card hidden" id="room-section">
+    <h2>欢迎, <span id="display-nickname" class="nickname-display"></span></h2>
+    <button class="btn btn-primary" id="btn-create-room">创建房间</button>
+    <div class="divider">或者</div>
+    <div class="form-group">
+      <label for="room-code-input">输入房间号</label>
+      <input type="text" id="room-code-input" placeholder="4位房间号" maxlength="4" autocomplete="off">
+    </div>
+    <button class="btn btn-secondary" id="btn-join-room">加入房间</button>
+    <div id="room-status" class="status-msg hidden"></div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+(function() {
+  const socket = io();
+
+  const nicknameSection = document.getElementById('nickname-section');
+  const roomSection = document.getElementById('room-section');
+  const nicknameInput = document.getElementById('nickname-input');
+  const btnSetNickname = document.getElementById('btn-set-nickname');
+  const nicknameStatus = document.getElementById('nickname-status');
+  const displayNickname = document.getElementById('display-nickname');
+  const btnCreateRoom = document.getElementById('btn-create-room');
+  const roomCodeInput = document.getElementById('room-code-input');
+  const btnJoinRoom = document.getElementById('btn-join-room');
+  const roomStatus = document.getElementById('room-status');
+
+  function showStatus(el, msg, type) {
+    el.textContent = msg;
+    el.className = 'status-msg ' + type;
+    el.classList.remove('hidden');
+  }
+
+  btnSetNickname.addEventListener('click', function() {
+    var nickname = nicknameInput.value.trim();
+    if (!nickname) {
+      showStatus(nicknameStatus, '请输入昵称', 'error');
+      return;
+    }
+    socket.emit('set_nickname', { nickname: nickname });
+  });
+
+  nicknameInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') btnSetNickname.click();
+  });
+
+  socket.on('nickname_set', function(data) {
+    if (data.success) {
+      sessionStorage.setItem('nickname', data.nickname);
+      displayNickname.textContent = data.nickname;
+      nicknameSection.classList.add('hidden');
+      roomSection.classList.remove('hidden');
+    }
+  });
+
+  btnCreateRoom.addEventListener('click', function() {
+    socket.emit('create_room', {});
+  });
+
+  socket.on('room_created', function(data) {
+    sessionStorage.setItem('room_code', data.room_code);
+    window.location.href = '/battle/room';
+  });
+
+  btnJoinRoom.addEventListener('click', function() {
+    var code = roomCodeInput.value.trim();
+    if (!code) {
+      showStatus(roomStatus, '请输入房间号', 'error');
+      return;
+    }
+    socket.emit('join_room', { room_code: code });
+  });
+
+  roomCodeInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') btnJoinRoom.click();
+  });
+
+  socket.on('room_joined', function(data) {
+    if (data.success) {
+      sessionStorage.setItem('room_code', roomCodeInput.value.trim());
+      window.location.href = '/battle/room';
+    } else {
+      showStatus(roomStatus, data.error || '加入失败', 'error');
+    }
+  });
+
+  socket.on('error', function(data) {
+    var visibleStatus = nicknameSection.classList.contains('hidden') ? roomStatus : nicknameStatus;
+    showStatus(visibleStatus, data.message, 'error');
+  });
+})();
+</script>
+</body>
+</html>

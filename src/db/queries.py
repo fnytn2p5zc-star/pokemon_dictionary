@@ -168,6 +168,56 @@ def fetch_all_types(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM types ORDER BY id").fetchall()
 
 
+def fetch_battle_stats(
+    conn: sqlite3.Connection,
+    pokemon_ids: list[int],
+) -> list:
+    if not pokemon_ids:
+        return []
+
+    from src.battle.models import BattlePokemonStats
+
+    placeholders = ",".join("?" for _ in pokemon_ids)
+    rows = conn.execute(
+        f"""
+        SELECT p.id, p.name_zh_hans, p.name_en, p.sprite_path,
+               s.hp, s.attack, s.defense, s.sp_attack, s.sp_defense, s.speed,
+               t1.id AS type1_id, t1.name_en AS type1_en,
+               t2.id AS type2_id, t2.name_en AS type2_en
+        FROM pokemon p
+        JOIN pokemon_stats s ON p.id = s.pokemon_id
+        JOIN types t1 ON p.type1_id = t1.id
+        LEFT JOIN types t2 ON p.type2_id = t2.id
+        WHERE p.id IN ({placeholders})
+        """,
+        pokemon_ids,
+    ).fetchall()
+
+    id_to_row = {row["id"]: row for row in rows}
+    result = []
+    for pid in pokemon_ids:
+        row = id_to_row.get(pid)
+        if row is None:
+            continue
+        result.append(BattlePokemonStats(
+            pokemon_id=row["id"],
+            name_zh=row["name_zh_hans"],
+            name_en=row["name_en"],
+            sprite_path=row["sprite_path"],
+            base_hp=row["hp"],
+            base_attack=row["attack"],
+            base_defense=row["defense"],
+            base_sp_attack=row["sp_attack"],
+            base_sp_defense=row["sp_defense"],
+            base_speed=row["speed"],
+            type1_id=row["type1_id"],
+            type1_en=row["type1_en"],
+            type2_id=row["type2_id"],
+            type2_en=row["type2_en"],
+        ))
+    return result
+
+
 def search_by_ability(
     conn: sqlite3.Connection,
     ability_name: str,
